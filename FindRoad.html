@@ -1,0 +1,236 @@
+<html>
+<head>
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+</head>
+<script>
+ 
+  function FindRoad(screenDiv){
+  		var self=this;
+  		var divObj = screenDiv;
+
+  		//self
+  		var objList = new Object();  		
+  		
+  		self.setParentclass=function(parentclass){
+  			self.parentClass=parentclass;
+  			self.util=parentclass.getThis("util");
+  			self.dataClassObj=parentclass.getThis("dataClassObj");
+  			self.NSLog = parentclass.getThis("NSLog");
+  		}
+  		
+  		self.getThis=function(varible){	
+  			return eval("self."+varible);
+  		}
+  		
+    self.init=function(){  	
+    }
+    self.setAIUse = function(isAi){
+    	self.AIUSE = isAi;
+		}
+		self.setSitZoneAry = function(ary){
+    	self.SitZoneAry = ary;
+		}
+		self.setChessSitStr = function(sitStr){
+	    self.NSLog("sitStr >>>> "+sitStr);
+	    var tempAry = sitStr.split("-");
+	    var Idx = parseInt(tempAry[0],10);
+	    var Jdx = parseInt(tempAry[1],10);
+	    var ret  = new Array();
+	    ret = self.findOneSit(Idx,Jdx,ret); //
+	    self.NSLog("return Array >>>>"+ret+","+Idx);
+	    for (var i = 0; i <ret.length ; i++) {
+	        for (var j = 0; j < self.SitZoneAry.length; j++) {
+	            var sit = self.SitZoneAry[j];
+	            if (ret[i] == sit.SitStr) {
+	                if (!self.AIUSE) {
+	                   //let chess shine
+	                   sit.pot.style.display="";
+	                   sit.pot.style.opacity="0.5";
+	                }
+	            }
+	        }
+	    }
+	    return ret;
+		}
+		
+		
+		//
+ self.findOneSit = function(idx,jdx,ret){
+    var ary = self.getDirAry(idx);
+    for (var i = 0; i < ary.length; i++) {
+        var vals =  ary[i];
+        var valsAry = vals.split(",");
+        var Iadd = parseInt(valsAry[0],10);
+        var Jadd = parseInt(valsAry[1],10);
+       	var IIdx = idx+Iadd;
+        var JJdx = jdx+Jadd;
+        var key = IIdx+"-"+JJdx;
+        var canMove = self.SitExist(key);
+        
+        if( canMove != ""){ //
+            if (canMove != "Not" && canMove != "block") {
+                ret[ret.length] = canMove;
+                continue;
+            }else if(canMove == "block"){ //
+                var str =  self.findNextSit(IIdx,JJdx,i);
+                var memAry = new Array();
+                if (str != "block" && str !="Not") {
+                    ret[ret.length] = str;
+                    memAry[memAry.length] = str;
+                }else{
+                    continue; // 
+                }
+                
+                while (memAry.length != 0) { // while
+                    var tmp =  memAry[memAry.length - 1];
+                    self.NSLog("whileing >>> "+tmp+" "+i);
+                    var strAry = tmp.split("-");
+                    IIdx = parseInt(strAry[0],10);
+                    JJdx = parseInt(strAry[1],10);
+                    var nextAry = self.findone(IIdx,JJdx); //
+                    for (var k = 0; k < nextAry.length ; k++) {
+                        var nextStr  = nextAry[k];
+                        var ttNextAry = nextStr.split("_");
+                        var ttNAry  = ttNextAry[0].split("-");
+                        var ttI = parseInt(ttNAry[0],10);
+                        var ttJ=  parseInt(ttNAry[1],10);
+                        var dir = parseInt(ttNextAry[1],10);
+                        if(i+3 == dir || i-3 == dir){
+                            continue;
+                        }
+                        var ttStr  = self.findNextSit(ttI,ttJ,dir);
+                        if (ttStr == str) {
+                            break;
+                        }
+                        
+                        if(ttStr != "Not" && ttStr != "block"){
+                            var isExist = self.hasThisSitInAry(ttStr,memAry); //memAry 
+                            var isExist2 = self.hasThisSitInAry(ttStr,ret); // 
+                            if (isExist) {
+                                continue;
+                            }
+                            if (isExist2) {
+                                continue;
+                            }
+                            ret[ret.length] = ttStr;
+                            memAry[memAry.length] = ttStr;
+                            self.NSLog("next add >>"+","+ttStr+","+str+","+k);
+                            str = ttStr;
+                            continue;
+                        }else{
+                            self.NSLog("next not >>"+","+ttStr+","+str+","+k);
+                            continue;
+                        }
+                    }
+                    memAry = self.removeValsByVals(tmp,memAry);
+                    nextAry = null;
+                }
+            }
+        }
+    }
+    return ret;
+}
+		
+		self.removeValsByVals = function(vals,memAry){
+			for(var i =0;i < memAry.length;i++){
+	      var str  = memAry[i];
+	      if(str == vals){
+	        memAry.splice(i,1);
+	        return memAry;
+	      }
+    	}
+    	return memAry;
+		}
+		
+		
+		
+		self.findone = function(idx,jdx){
+	    self.NSLog("[["+idx+" "+jdx+"]]");
+	    var tempAry = new Array();
+	    var ary = self.getDirAry(idx);
+	    for (var i = 0; i < ary.length; i++) {
+	        var vals =  ary[i];
+	        var valsAry = vals.split(",");
+	        var Iadd = parseInt(valsAry[0],10);
+	        var Jadd = parseInt(valsAry[1],10);
+	        var IIdx = idx+Iadd;
+	        var JJdx = jdx+Jadd;
+	        var key = IIdx+"-"+JJdx;
+	        var canMove = self.SitExist(key);
+	        if(canMove == "block" ){
+	            key += "_"+i;
+	            tempAry[tempAry.length] = key;
+	        }
+	    }
+	    return tempAry;
+		}
+		
+		self.findNextSit = function(idx,jdx,dir){
+    	var ary = self.getDirAry(idx);
+    	var vals =  ary[dir];
+    	var valsAry = vals.split(",");
+    	var Iadd = parseInt(valsAry[0],10);
+    	var Jadd = parseInt(valsAry[1],10);
+    	var key = (idx+Iadd)+"-"+(jdx+Jadd);
+    	var canMove = self.SitExist(key);
+    	if(canMove == ""){
+        return "";
+    	}
+    	return canMove;
+		}
+		
+		self.hasThisSitInAry = function(str,ary){
+		    var ret = false;
+		    for (var i = 0; i< ary.length; i++) {
+		        var temp = ary[i];
+		        if (str == temp) {
+		            ret = true;
+		            break;
+		        }
+		    }
+		    return ret;
+		}
+		
+		//exist sit? or not
+		self.SitExist = function(str){
+    	var ret = "Not";
+	    for (var i = 0 ; i < self.SitZoneAry.length; i++) {
+	        var sit = self.SitZoneAry[i];
+	        if(str  == sit.SitStr){
+	            if (sit.ChessType == 0) {
+	                ret = sit.SitStr;
+	                break;
+	            }
+	            return  "block";
+	        }
+	    }
+	    return ret;
+		}
+
+		
+		
+		
+		self.getDirAry = function(idx){
+		    var ary = null;
+		    if(idx < 7){
+		        ary = ["0,-1","-1,-1","-1,0","0,1","1,1","1,0"];
+		    }else if(idx == 7){
+		        ary = ["0,-1","-1,-1","-1,0","0,1","1,0","1,-1"];
+		    }else{
+		        ary = ["0,-1","-1,0","-1,1","0,1","1,0","1,-1"];
+		    }
+		    return ary;
+	}
+		
+		
+		self.closes=function(){
+  		
+  	}
+  	
+  	
+  }
+  	
+</script>
+<body>
+</body>
+</html>
